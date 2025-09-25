@@ -86,7 +86,12 @@ const items = [
     title:"Reviews",
     href: "/dashboard/reviews",
     icon: Star   ,
-  }
+  },
+  {
+    title:"Store Location",
+    href: "/dashboard/storelocation",
+    icon: Star   ,
+  },
 ]
 
 interface DashboardNavProps {
