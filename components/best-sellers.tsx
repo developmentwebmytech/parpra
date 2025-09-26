@@ -1,8 +1,7 @@
 "use client";
 
 import type React from "react";
-
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Heart } from "lucide-react";
@@ -10,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
 import AuthPopup from "./auth-popup";
-import { useMemo } from "react";
 
 interface Product {
   _id: string;
@@ -39,8 +37,8 @@ export default function BestSellers({
 }: BestSellersProps) {
   // Ensure products is always an array
   const safeProducts = useMemo(() => {
-  return Array.isArray(products) ? products : [];
-}, [products]);
+    return Array.isArray(products) ? products : [];
+  }, [products]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -58,6 +56,7 @@ export default function BestSellers({
       setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
     }
   };
+
   const handleAuthPopupClose = () => {
     setShowAuthPopup(false);
   };
@@ -164,7 +163,7 @@ export default function BestSellers({
           </div>
         </div>
 
-        {/* Image - Below or side depending on screen */}
+        {/* Image Section */}
         {sectionImage && (
           <div className="w-full md:w-1/3 relative h-40 mb-6 md:mb-0 mx-auto md:mx-0">
             <Image
@@ -185,9 +184,11 @@ export default function BestSellers({
           onScroll={checkScrollButtons}
         >
           {safeProducts.map((product) => {
-            const mainVariation = product.variations[0];
-            const price = mainVariation?.price || 0;
-            const salePrice = mainVariation?.salePrice;
+            const mainVariation = product.variations?.[0]; // ✅ safe access
+            if (!mainVariation) return null; // ✅ skip if no variation
+
+            const price = mainVariation.price || 0;
+            const salePrice = mainVariation.salePrice;
 
             const formattedPrice = new Intl.NumberFormat("en-IN", {
               style: "currency",
@@ -210,7 +211,7 @@ export default function BestSellers({
                     <Image
                       src={
                         mainVariation.image ||
-                        "/placeholder.svg?height=600&width=450&query=ethnic wear"
+                        "/placeholder.svg?height=600&width=450&query=product"
                       }
                       alt={product.name}
                       fill

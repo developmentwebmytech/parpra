@@ -1,17 +1,15 @@
 "use client";
 
 import type React from "react";
-
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Heart, ShoppingCart } from "lucide-react";
+import { ChevronLeft, ChevronRight, Heart } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
 import AuthPopup from "./auth-popup";
-import { useMemo } from "react";
 
 interface Product {
   _id: string;
@@ -40,10 +38,10 @@ export default function NewArrivals({
   sectionTitle = "New Arrivals",
   sectionSubtitle = "Check out our latest products",
 }: NewArrivalsProps) {
-  // Ensure products is always an array
   const safeProducts = useMemo(() => {
-  return Array.isArray(products) ? products : [];
-}, [products]);
+    return Array.isArray(products) ? products : [];
+  }, [products]);
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -57,11 +55,8 @@ export default function NewArrivals({
       const { scrollLeft, scrollWidth, clientWidth } =
         scrollContainerRef.current;
       setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10); // 10px buffer
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
     }
-  };
-  const handleAuthPopupClose = () => {
-    setShowAuthPopup(false);
   };
 
   useEffect(() => {
@@ -88,17 +83,6 @@ export default function NewArrivals({
         behavior: "smooth",
       });
     }
-  };
-
-  const handleAddToCart = (e: React.MouseEvent, product: Product) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Add to cart logic here
-    toast({
-      title: "Added to cart",
-      description: `${product.name} has been added to your cart.`,
-    });
   };
 
   const handleAddToWishlist = async (
@@ -144,7 +128,7 @@ export default function NewArrivals({
     }
   };
 
-  // If no products are provided, use default ones
+  // Fallback products
   const displayProducts =
     safeProducts.length > 0
       ? safeProducts
@@ -169,9 +153,8 @@ export default function NewArrivals({
   return (
     <section className="py-12 sm:py-14 md:py-16">
       <div className="container mx-auto px-4 sm:px-6 md:px-8">
-        {/* Top Heading + Image */}
+        {/* Title & Image */}
         <div className="flex flex-col md:flex-row items-center justify-between mb-10 sm:mb-12">
-          {/* Section Title */}
           <div className="w-full md:w-2/3">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-light mb-2 text-teal-700">
               {sectionTitle}
@@ -182,12 +165,11 @@ export default function NewArrivals({
               </p>
             )}
           </div>
-
           {sectionImage && (
             <div className="w-full md:w-1/3 lg:w-1/4 relative h-64 md:h-60">
               <Image
-                src={sectionImage || "/placeholder.svg"}
-                alt={sectionTitle || "New Arrivals"}
+                src={sectionImage}
+                alt={sectionTitle}
                 fill
                 sizes="(max-width: 768px) 100vw, 33vw"
                 className="object-cover rounded-lg"
@@ -196,10 +178,9 @@ export default function NewArrivals({
           )}
         </div>
 
-        {/* Auth Popup (Optional) */}
-        {showAuthPopup && <AuthPopup onClose={handleAuthPopupClose} />}
+        {showAuthPopup && <AuthPopup onClose={() => setShowAuthPopup(false)} />}
 
-        {/* Horizontal Scrollable Products */}
+        {/* Product Carousel */}
         <div className="relative">
           {canScrollLeft && (
             <button
@@ -214,17 +195,11 @@ export default function NewArrivals({
           <div
             ref={scrollContainerRef}
             className="flex overflow-x-auto scrollbar-hide gap-6 pb-4 -mx-4 px-4"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {displayProducts.map((product) => {
-              const variation = product.variations[0];
-              const discountPercentage = variation.salePrice
-                ? Math.round(
-                    ((variation.price - variation.salePrice) /
-                      variation.price) *
-                      100
-                  )
-                : 0;
+              // ✅ Safe guard: variations might be empty
+              const variation = product.variations?.[0];
+              if (!variation) return null;
 
               return (
                 <Card
@@ -244,7 +219,7 @@ export default function NewArrivals({
                       className="object-cover transition-transform group-hover:scale-105 duration-500"
                     />
                     <button
-                      className="absolute top-3 right-3 bg-white p-2 rounded-full shadow-md hover:bg-gray-100 hover:cursor-pointer"
+                      className="absolute top-3 right-3 bg-white p-2 rounded-full shadow-md hover:bg-gray-100"
                       onClick={(e) =>
                         handleAddToWishlist(e, product._id, variation._id)
                       }
@@ -287,7 +262,7 @@ export default function NewArrivals({
           )}
         </div>
 
-        {/* View All CTA */}
+        {/* CTA */}
         <div className="flex justify-center mt-8">
           <Link
             href="/products"
