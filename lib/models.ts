@@ -41,6 +41,8 @@ interface IProduct extends Document {
   tags: string[]
   is_featured: boolean
   is_best_seller: boolean
+  tax_rate: number
+  is_new_arrival: boolean
   variations: mongoose.Types.ObjectId[]
   slug: string
   createdAt: Date
@@ -104,6 +106,8 @@ const ProductSchema = new Schema<IProduct>(
     tags: [String],
     is_featured: { type: Boolean, default: false },
     is_best_seller: { type: Boolean, default: false },
+    tax_rate: { type: Number, enum: [0, 5, 12, 18, 28], default: 0 },
+    is_new_arrival: { type: Boolean, default: false },
     variations: [{ type: Schema.Types.ObjectId, ref: "Variation" }],
     slug: { type: String, unique: true, required: true },
   },
@@ -156,5 +160,3 @@ export const Variation = mongoose.models.Variation || mongoose.model<IVariation>
 
 // Export interfaces
 export type { IUser, IBrand, ICategory, IProduct, IVariation }
-
-
