@@ -16,9 +16,16 @@ const productSchema = z.object({
   tags: z.array(z.string()).optional(),
   is_featured: z.boolean().optional(),
   is_best_seller: z.boolean().optional(),
+  tax_rate: z
+    .number()
+    .refine((val) => [0, 5, 12, 18, 28].includes(val), {
+      message: "Tax rate must be one of: 0, 5, 12, 18, 28",
+    })
+    .optional(),
+  is_new_arrival: z.boolean().optional(),
 })
 
-export async function GET(req: Request, { params }: { params: Promise<{ id: string }>}) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
 
@@ -41,7 +48,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   }
 }
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }>}) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -49,14 +56,42 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-   const { id } = await params
+    const { id } = await params
 
     if (!isValidObjectId(id)) {
       return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })
     }
 
-    const body = await req.json()
-    const { name, description, brand_id, category_id, material, tags, is_featured, is_best_seller } = body
+    let body
+    try {
+      const contentLength = req.headers.get("content-length")
+      if (!contentLength || contentLength === "0") {
+        return NextResponse.json({ error: "Request body is required" }, { status: 400 })
+      }
+
+      const contentType = req.headers.get("content-type")
+      if (!contentType || !contentType.includes("application/json")) {
+        return NextResponse.json({ error: "Content-Type must be application/json" }, { status: 400 })
+      }
+
+      body = await req.json()
+    } catch (jsonError) {
+      console.error("JSON parsing error:", jsonError)
+      return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 })
+    }
+
+    const {
+      name,
+      description,
+      brand_id,
+      category_id,
+      material,
+      tags,
+      is_featured,
+      is_best_seller,
+      tax_rate,
+      is_new_arrival,
+    } = body
 
     // Validate input
     const validatedData = productSchema.parse({
@@ -68,6 +103,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       tags: tags || [],
       is_featured: is_featured || false,
       is_best_seller: is_best_seller || false,
+      tax_rate: tax_rate || 0,
+      is_new_arrival: is_new_arrival || false,
     })
 
     await connectToDatabase()
@@ -130,6 +167,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         tags: validatedData.tags,
         is_featured: validatedData.is_featured,
         is_best_seller: validatedData.is_best_seller,
+        tax_rate: validatedData.tax_rate,
+        is_new_arrival: validatedData.is_new_arrival,
         slug,
       },
       { new: true },
@@ -152,7 +191,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }>}) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -160,7 +199,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-   const { id } = await params
+    const { id } = await params
 
     if (!isValidObjectId(id)) {
       return NextResponse.json({ error: "Invalid product ID" }, { status: 400 })

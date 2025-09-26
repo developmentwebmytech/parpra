@@ -24,6 +24,14 @@ const formSchema = z.object({
   tags: z.string().optional(),
   is_featured: z.boolean().default(false),
   is_best_seller: z.boolean().default(false),
+  tax_rate: z.union([z.string(), z.number()]).transform((val) => {
+    const num = typeof val === "string" ? Number(val) : val
+    if (![0, 5, 12, 18, 28].includes(num)) {
+      throw new Error("Tax rate must be one of: 0, 5, 12, 18, 28")
+    }
+    return num
+  }),
+  is_new_arrival: z.boolean().default(false),
 })
 
 interface ProductFormProps {
@@ -64,18 +72,18 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
       tags: "",
       is_featured: false,
       is_best_seller: false,
+      tax_rate: "0",
+      is_new_arrival: false,
     },
   })
 
   // Update form when product data changes
   useEffect(() => {
+    console.log("Product data changed:", product) // 🔹 console
     if (product) {
-      
-
       const brandId = extractId(product.brand_id)
       const categoryId = extractId(product.category_id)
       const tagsString = formatTags(product.tags)
-
 
       form.reset({
         name: product.name || "",
@@ -86,12 +94,15 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
         tags: tagsString,
         is_featured: product.is_featured || false,
         is_best_seller: product.is_best_seller || false,
+        tax_rate: (product.tax_rate || 0).toString(),
+        is_new_arrival: product.is_new_arrival || false,
       })
     }
   }, [product, form])
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
+    console.log("Form submit values:", values) // 🔹 console
 
     try {
       // Process tags
@@ -106,55 +117,51 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
         ...values,
         tags,
       }
+      console.log("Processed productData:", productData) // 🔹 console
 
       if (product) {
-        const response = await fetch(`/api/products/${product._id}`, {
+        console.log("Updating product ID:", product._id) // 🔹 console
+        const response = await fetch(`/api/admin/products/${product._id}`, {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(productData),
         })
-
-        const data = await response.json()
+        console.log("Update response status:", response.status) // 🔹 console
 
         if (!response.ok) {
-          throw new Error(data.error || "Failed to update product")
+          const errorText = await response.text()
+          console.error("Update error response:", errorText) // 🔹 console
+          throw new Error(errorText || "Failed to update product")
         }
 
-        toast({
-          title: "Success",
-          description: "Product updated successfully",
-        })
+        const data = await response.json()
+        console.log("Updated product response:", data) // 🔹 console
+        toast({ title: "Success", description: "Product updated successfully" })
       } else {
-        const response = await fetch("/api/products", {
+        console.log("Creating new product") // 🔹 console
+        const response = await fetch("/api/admin/products", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(productData),
         })
-
-        const data = await response.json()
+        console.log("Create response status:", response.status) // 🔹 console
 
         if (!response.ok) {
-          throw new Error(data.error || "Failed to create product")
+          const errorText = await response.text()
+          console.error("Create error response:", errorText) // 🔹 console
+          throw new Error(errorText || "Failed to create product")
         }
 
-        toast({
-          title: "Success",
-          description: "Product created successfully",
-        })
+        const data = await response.json()
+        console.log("Created product response:", data) // 🔹 console
+        toast({ title: "Success", description: "Product created successfully" })
       }
 
       router.push("/dashboard/products")
       router.refresh()
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      })
+      console.error("Form submission error:", error) // 🔹 console
+      toast({ title: "Error", description: error.message, variant: "destructive" })
     } finally {
       setIsLoading(false)
     }
@@ -184,7 +191,7 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
             render={({ field }) => (
               <FormItem className="mb-4">
                 <FormLabel className="text-lg block">Brand</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || "undefined"}>
+                <Select onValueChange={field.onChange} value={field.value || ""}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a brand" />
@@ -232,11 +239,36 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
             control={form.control}
             name="material"
             render={({ field }) => (
-              <FormItem   className="mb-4">
-                <FormLabel  className="text-lg block">Material</FormLabel>
+              <FormItem className="mb-4">
+                <FormLabel className="text-lg block">Material</FormLabel>
                 <FormControl>
                   <Input placeholder="Enter material (optional)" {...field} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="tax_rate"
+            render={({ field }) => (
+              <FormItem className="mb-4">
+                <FormLabel className="text-lg block">Tax Rate (%)</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value?.toString()}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select tax rate" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="0">0%</SelectItem>
+                    <SelectItem value="5">5%</SelectItem>
+                    <SelectItem value="12">12%</SelectItem>
+                    <SelectItem value="18">18%</SelectItem>
+                    <SelectItem value="28">28%</SelectItem>
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -304,11 +336,31 @@ export function ProductForm({ product, brands, categories }: ProductFormProps) {
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="is_new_arrival"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="text-lg">New Arrival</FormLabel>
+                    <p className="text-sm text-muted-foreground">This product will be marked as a new arrival</p>
+                  </div>
+                </FormItem>
+              )}
+            />
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
-          <Button type="submit" disabled={isLoading} className="w-full sm:w-auto text-lg  py-4 bg-teal-600 font-light hover:bg-teal-700">
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full sm:w-auto text-lg  py-4 bg-teal-600 font-light hover:bg-teal-700"
+          >
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
