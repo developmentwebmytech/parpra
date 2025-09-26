@@ -56,7 +56,7 @@ const SettingsPage = () => {
 
   const fetchCountries = async () => {
     try {
-      const response = await fetch("/api/admin/setting-location?type=countries")
+      const response = await fetch("/api/admin/address-location?type=countries")
       if (response.ok) {
         const data = await response.json()
         setCountries(data)
@@ -68,7 +68,7 @@ const SettingsPage = () => {
 
   const fetchStates = async () => {
     try {
-      const response = await fetch("/api/admin/setting-location?type=states")
+      const response = await fetch("/api/admin/address-location?type=states")
       if (response.ok) {
         const data = await response.json()
         setStates(data)
@@ -80,8 +80,8 @@ const SettingsPage = () => {
 
   const fetchCities = async () => {
     try {
-      // console.log("[v0] Fetching cities from /api/admin/setting-location?type=cities-towns")
-      const response = await fetch("/api/admin/setting-location?type=cities-towns")
+      // console.log("[v0] Fetching cities from /api/admin/address-location?type=cities-towns")
+      const response = await fetch("/api/admin/address-location?type=cities-towns")
       // console.log("[v0] Cities response status:", response.status)
       if (response.ok) {
         const data = await response.json()
@@ -136,7 +136,7 @@ const SettingsPage = () => {
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/admin/setting-location", {
+      const response = await fetch("/api/admin/address-location", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -182,7 +182,7 @@ const SettingsPage = () => {
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/admin/setting-location", {
+      const response = await fetch("/api/admin/address-location", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -228,7 +228,7 @@ const SettingsPage = () => {
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/admin/setting-location", {
+      const response = await fetch("/api/admin/address-location", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -295,7 +295,7 @@ const SettingsPage = () => {
     setIsLoading(true)
 
     try {
-      const response = await fetch(`/api/admin/setting-location?type=${itemToDelete.type}&id=${itemToDelete.id}`, {
+      const response = await fetch(`/api/admin/address-location?type=${itemToDelete.type}&id=${itemToDelete.id}`, {
         method: "DELETE",
       })
 

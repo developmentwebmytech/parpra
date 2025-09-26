@@ -92,6 +92,11 @@ const items = [
     href: "/dashboard/storelocation",
     icon: Star   ,
   },
+  {
+    title:"Address Location",
+    href: "/dashboard/address-location",
+    icon: Star   ,
+  },
 ]
 
 interface DashboardNavProps {
